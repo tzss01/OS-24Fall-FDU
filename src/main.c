@@ -6,19 +6,25 @@
 #include <kernel/printk.h>
 
 static volatile bool boot_secondary_cpus = false;
+extern char edata[], end[];
+
+void clear_bss() {
+    // 计算需要清零的字节数
+    long long bss_size = end - edata;
+
+    // 使用 memset 函数将 [edata, end) 范围内的内存清零
+    memset(edata, 0x1, bss_size);
+}
 
 void main() {
     if (cpuid() == 0) {
         /* @todo: Clear BSS section.*/
-        extern char edata[], end[];
-        memset(edata, 0, (usize)(end - edata));
 
         smp_init();
         uart_init();
         printk_init();
 
-        /* initialize kernel memory allocator */
-        kinit();
+        /* @todo: Print "Hello, world! (Core 0)" */
 
         arch_fence();
 
@@ -27,6 +33,8 @@ void main() {
     } else {
         while (!boot_secondary_cpus);
         arch_fence();
+
+        /* @todo: Print "Hello, world! (Core <core id>)" */
     }
 
     set_return_addr(idle_entry);
